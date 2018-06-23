@@ -1,5 +1,6 @@
+short_thread_5 0 0 5 37
 med_thread_0 1 1 25 55
 long_thread_0 2 0 263 59
 short_thread_0 0 1 12 40
-io_thread_1 3 1 10 50
-io_thread_0 3 1 592 100
+io_thread_1 3 2 212 69
+short_thread_6 0 2 18 50
