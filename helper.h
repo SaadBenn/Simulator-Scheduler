@@ -70,7 +70,14 @@ bool create_process();
 // scheduler management functions
 int generate_random_word(int len);
 void process_fcfs(Process_queue *);
+void process_sjf(Process_queue *);
 
+// Other helper functions
 void define_global_var();
 void print_stats_by_priority();
 void print_stats_by_type();
+
+// sorting functions
+void insert_min_to_rear(Process_queue *, int);
+void sort_queue(Process_queue *);
+int min_finder(Process_queue *, int);
