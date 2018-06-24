@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <time.h>
+#include <limits.h>
 #include "helper.h"
 
 int main(int argc, char const *argv[]) {
@@ -22,15 +23,27 @@ int main(int argc, char const *argv[]) {
     int scheduler = atoi(argv[1]);
     
     switch (scheduler) {
-        case 0:
+        case 1:
+            printf("%s\n", "Using First Come First Served Scheduling algorithm.");
             process_fcfs(queue);
             break;
+        case 2:
+            break;
+        case 3:
+            printf("%s\n", "Using Shortest Job First Scheduling algorithm.");
+            process_sjf(queue);
+            break;
+        case 4:
+            break;
         default:
+            printf("%s\n", "Valid arguments are from -> 1.....4, only.");
             break;
     } // switch
     
+    printf("------------------------------------------------------------------\n");
     print_stats_by_priority();
     print_stats_by_type();
+    printf("------------------------------------------------------------------\n");
     printf("\n%s\n", "Scheduling done!");
     return 0;
 } // close main
@@ -64,7 +77,6 @@ void define_global_var() {
 
 void process_fcfs(Process_queue *queue) {
     
-    printf("%s\n", "Using First Come First Served Scheduling algorithm.");
     int i;
     int time_slice_for_io = 0;
     int wait_time = 0;
@@ -156,9 +168,91 @@ void process_fcfs(Process_queue *queue) {
 } // close process_fcfs
 
 
+void process_sjf(Process_queue *queue) {
+    // sort the queue by shortest jobs first
+    sort_queue(queue);
+    process_fcfs(queue);
+} // close process_sjf
+
+
+void sort_queue(Process_queue *queue) {
+    int i;
+    for (i = 1; i <= NUMBER_OF_PROCESSES; i++) {
+        int min_index = min_finder(queue, queue->size - i);
+        insert_min_to_rear(queue, min_index);
+    }
+} // close sort_queue
+
+
+// Moves given minimum element to rear of
+// queue
+void insert_min_to_rear(Process_queue *queue, int min_index) {
+    Process *min_val_process = NULL;
+    int n = queue->size;
+    int i;
+    for (i = 0; i < n; i++)
+    {
+        Process_node *curr = queue->front;
+        Process *process = (Process*) malloc(sizeof(PROCESS_SIZE) * 10);
+        // deep copy before de-queueing
+        process->thread_name = strdup(queue->front->data->thread_name);
+        process->thread_type = strdup(queue->front->data->thread_type);
+        process->priority = queue->front->data->priority;
+        process->thread_length = queue->front->data->thread_length;
+        process->odds_of_IO = queue->front->data->odds_of_IO;
+        //Process *process = curr->data;
+        dequeue_process(queue);
+        if (i != min_index) {
+            enqueue_process(queue, process);
+        } else {
+            min_val_process = process;
+        }
+    }
+    enqueue_process(queue, min_val_process);
+} // close insert_min_to_rear
+
+
+// Queue elements after sortedIndex are
+// already sorted. This function returns
+// index of minimum element from front to
+// sortedIndex
+int min_finder(Process_queue *queue, int sorted_index) {
+    int min_index = -1;
+    int min_val = INT_MAX;
+    int n = queue->size;
+    int i;
+    for (i = 0; i < n; i++) {
+        Process_node *curr = (Process_node*) malloc(sizeof(Process_node) * 50);
+        Process *process = (Process*) malloc(sizeof(PROCESS_SIZE) * 10);
+        curr = queue->front;
+        
+        // deep copy before de-queueing
+        process->thread_name = strdup(queue->front->data->thread_name);
+        process->thread_type = strdup(queue->front->data->thread_type);
+        process->priority = queue->front->data->priority;
+        process->thread_length = queue->front->data->thread_length;
+        process->odds_of_IO = queue->front->data->odds_of_IO;
+        
+        curr->data = process;
+        
+        dequeue_process(queue);  // This is dequeue() in C++ STL
+        
+        // we add the condition i <= sortedIndex
+        // because we don't want to traverse
+        // on the sorted part of the queue,
+        // which is the right part.
+        if (process->thread_length <= min_val && i <= sorted_index) {
+            min_index = i;
+            min_val = process->thread_length;
+        }
+        enqueue_process(queue, process);
+    }
+    return min_index;
+} // close min_finder
+
+
 void print_stats_by_priority() {
-    printf("\n------------------------------------------------------------------\n");
-    printf("%s\n", "Average run time per priority:");
+    printf("\n%s\n", "Average run time per priority:");
     printf("Priority 0 average run time: %d\n", time_high/count_high_priority);
     printf("Priority 1 average run time: %d\n", time_med/count_med_priority);
     printf("Priority 2 average run time: %d\n", time_low/count_low_priority);
@@ -166,8 +260,7 @@ void print_stats_by_priority() {
 
 
 void print_stats_by_type() {
-    printf("\n------------------------------------------------------------------\n");
-    printf("%s\n", "Average run time per type:");
+    printf("\n\n%s\n", "Average run time per type:");
     printf("Type 0 average run time: %d\n", total_time_for_short/count_short);
     printf("Type 1 average run time: %d\n", total_time_for_med/count_med);
     printf("Type 2 average run time: %d\n", total_time_for_long/count_long);
@@ -189,7 +282,7 @@ void load_processes(char *fileName, Process_queue *queue) {
         process_line(buffer);
         create_process(queue);
     }
-    printf("%s\n", "Process loading done!");
+    printf("%s\n\n", "Process loading done!");
 } // close load processes
 
 
