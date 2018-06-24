@@ -14,37 +14,165 @@ int main(int argc, char const *argv[]) {
     char *fileName = "processes.txt";
     
     queue = initialize_process_queue(queue);
+    // initialize the gloabl vars
+    define_global_var();
+    
     load_processes(fileName, queue);
-    int scheduler = 1;
+    
+    int scheduler = atoi(argv[1]);
     
     switch (scheduler) {
-        case 1:
+        case 0:
             process_fcfs(queue);
             break;
         default:
             break;
     } // switch
     
-    //dequeue_process(queue);
+    print_stats_by_priority();
+    print_stats_by_type();
+    printf("\n%s\n", "Scheduling done!");
     return 0;
 } // close main
 
 
+void define_global_var() {
+    NUMBER_OF_PROCESSES = 0;
+    // avergaing time
+    total_time_for_short = 0;
+    total_time_for_med = 0;
+    total_time_for_long = 0;
+    total_time_for_io = 0;
+    
+    // type counter
+    count_short = 0;
+    count_med = 0;
+    count_long = 0;
+    count_io = 0;
+    
+    // priority counter
+    count_high_priority = 0;
+    count_med_priority = 0;
+    count_low_priority = 0;
+    
+    // time for priorities
+    time_high = 0;
+    time_med = 0;
+    time_low = 0;
+} // close define_global_var
+
+
 void process_fcfs(Process_queue *queue) {
     
+    printf("%s\n", "Using First Come First Served Scheduling algorithm.");
     int i;
-    for (i = 0; i < queue->size; i++) {
+    int time_slice_for_io = 0;
+    int wait_time = 0;
+    //int len = queue->size;
+    for (i = 0; i < NUMBER_OF_PROCESSES; i++) {
+        // not checking for empty queue - bad porgramming
         Process *process = queue->front->data;
-        if (process->thread_name[0] == 's' || process->thread_name[0] == 'm' || process->thread_name[0] == 'l') {
-            int rand_num = generate_random_word(2);
-            if (rand_num == 0) {
+        char first_letter = process->thread_name[0];
+        
+        switch (first_letter) {
+            case 's':
+                if (process->priority == 0) {
+                    count_high_priority += 1;
+                    time_high = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                } else if (process->priority == 1) {
+                    count_med_priority += 1;
+                    time_med = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                } else {
+                    count_low_priority += 1;
+                    time_low = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                }
+                count_short += 1;
+                total_time_for_short = wait_time;
+                break;
+            case 'm':
+                if (process->priority == 0) {
+                    count_high_priority += 1;
+                    time_high = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                } else if (process->priority == 1) {
+                    count_med_priority += 1;
+                    time_med = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                } else {
+                    count_low_priority += 1;
+                    time_low = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                }
+                count_med += 1;
+                total_time_for_med = wait_time;
+                break;
+            
+            case 'l':
+                if (process->priority == 0) {
+                    count_high_priority += 1;
+                    time_high = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                } else if (process->priority == 1) {
+                    count_med_priority += 1;
+                    time_med = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                } else {
+                    count_low_priority += 1;
+                    time_low = wait_time + process->thread_length;
+                    wait_time += process->thread_length;
+                }
+                count_long += 1;
+                total_time_for_long = wait_time;
+                break;
+            
+            case 'i':
+                time_slice_for_io = generate_random_word(process->thread_length);
                 
-            }
-            printf("YES");
-        }
-    }
-}
+                if (process->priority == 0) {
+                    count_high_priority += 1;
+                    time_high = wait_time + time_slice_for_io;
+                    wait_time += time_slice_for_io;
+                } else if (process->priority == 1) {
+                    count_med_priority += 1;
+                    time_med = wait_time + time_slice_for_io;
+                    wait_time += time_slice_for_io;
+                } else {
+                    count_low_priority += 1;
+                    time_low = wait_time + time_slice_for_io;
+                    wait_time += time_slice_for_io;
+                }
+                count_io += 1;
+                total_time_for_io = wait_time;
+                break;
+            default:
+                break;
+        } // switch - case
+        
+        dequeue_process(queue);
+    } // for loop
+} // close process_fcfs
 
+
+void print_stats_by_priority() {
+    printf("\n------------------------------------------------------------------\n");
+    printf("%s\n", "Average run time per priority:");
+    printf("Priority 0 average run time: %d\n", time_high/count_high_priority);
+    printf("Priority 1 average run time: %d\n", time_med/count_med_priority);
+    printf("Priority 2 average run time: %d\n", time_low/count_low_priority);
+} // close print_stats_priority
+
+
+void print_stats_by_type() {
+    printf("\n------------------------------------------------------------------\n");
+    printf("%s\n", "Average run time per type:");
+    printf("Type 0 average run time: %d\n", total_time_for_short/count_short);
+    printf("Type 1 average run time: %d\n", total_time_for_med/count_med);
+    printf("Type 2 average run time: %d\n", total_time_for_long/count_long);
+    printf("Type 3 average run time: %d\n", total_time_for_io/count_io);
+}
 
 void load_processes(char *fileName, Process_queue *queue) {
     char *buffer;
@@ -92,6 +220,7 @@ bool create_process(Process_queue *queue) {
     
     // enqueue the process
     enqueue_process(queue, process);
+    NUMBER_OF_PROCESSES++;
     return true;
 } // close create_process
 
