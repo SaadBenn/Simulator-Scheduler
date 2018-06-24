@@ -4,3 +4,9 @@ long_thread_0 2 0 263 59
 short_thread_0 0 1 12 40
 io_thread_1 3 2 212 69
 short_thread_6 0 2 18 50
+med_thread_1 1 0 38 58
+med_thread_11 1 2 43 26
+long_thread_8 2 2 323 41
+long_thread_9 2 1 562 51
+io_thread_8 3 0 399 73
+io_thread_11 3 1 765 87
