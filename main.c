@@ -10,6 +10,8 @@
 #include "helper.h"
 
 int wait_time = 0;
+const bool FALSE = false;
+const bool TRUE = true;
 
 int main(int argc, char const *argv[]) {
     
@@ -31,7 +33,7 @@ int main(int argc, char const *argv[]) {
     switch (scheduler) {
         case 1:
             printf("%s\n", "Using First Come First Served Scheduling algorithm.");
-            process_fcfs(queue);
+            process_fcfs(queue, FALSE);
             break;
         case 2:
             printf("%s\n", "Using Priority Round Robin algorithm.");
@@ -42,6 +44,8 @@ int main(int argc, char const *argv[]) {
             process_sjf(queue);
             break;
         case 4:
+            printf("%s\n", "Using Shortest Time To Completion Scheduling algorithm.");
+            process_srtf(queue);
             break;
         default:
             printf("%s\n", "Valid arguments are from -> 1.....4, only.");
@@ -55,6 +59,11 @@ int main(int argc, char const *argv[]) {
     printf("\n%s\n", "Scheduling done!");
     return 0;
 } // close main
+
+
+void process_srtf(Process_queue *queue) {
+    process_fcfs(queue, TRUE);
+} // close process_srtf
 
 
 void define_global_var() {
@@ -84,38 +93,26 @@ void define_global_var() {
 
 
 void process_priority_round_robin(Process_queue *queue_high, Process_queue *queue_med, Process_queue *queue_low) {
-    process_fcfs(queue_high);
-    process_fcfs(queue_med);
-    process_fcfs(queue_low);
+    process_fcfs(queue_high, FALSE);
+    process_fcfs(queue_med, FALSE);
+    process_fcfs(queue_low, FALSE);
 } // close process_priority_round_robin
 
 
-//void process_high_priority(Process_queue * high_queue) {
-//
-//    int len = high_queue->size;
-//    int i;
-//
-//    for (i = 0; i < len; i++) {
-//
-//        Process *process = queue->front->data;
-//        
-//    }
-//
-//
-//} // close process_high_priority
-
-
-void process_fcfs(Process_queue *queue) {
-    
+void process_fcfs(Process_queue *queue, bool do_sort) {
+        
     int i;
     int quantum;
     bool result_io;
-    
+    int n;
     // check if we need to rerun the processes
     while (is_empty(queue)) {
-    
-    
-        for (i = 0; i < queue->size; i++) {
+        
+        if (do_sort) {
+            sort_queue(queue);
+        }
+        n = queue->size;
+        for (i = 0; i < n; i++) {
             
             // not checking for empty queue - bad porgramming
             Process *process = queue->front->data;
@@ -589,14 +586,14 @@ bool is_empty(Process_queue *queue) {
 
 void process_sjf(Process_queue *queue) {
     // sort the queue by shortest jobs first
-    sort_queue(queue);
-    process_fcfs(queue);
+    process_fcfs(queue, TRUE);
 } // close process_sjf
 
 
 void sort_queue(Process_queue *queue) {
     int i;
-    for (i = 1; i <= NUMBER_OF_PROCESSES; i++) {
+    int n = queue->size;
+    for (i = 1; i <= n; i++) {
         int min_index = min_finder(queue, queue->size - i);
         insert_min_to_rear(queue, min_index);
     }
@@ -644,15 +641,16 @@ int min_finder(Process_queue *queue, int sorted_index) {
         curr = queue->front;
         
         // deep copy before de-queueing
-        process->thread_name = strdup(queue->front->data->thread_name);
-        process->thread_type = strdup(queue->front->data->thread_type);
-        process->priority = queue->front->data->priority;
-        process->thread_length = queue->front->data->thread_length;
-        process->odds_of_IO = queue->front->data->odds_of_IO;
-        
-        curr->data = process;
-        
-        dequeue_process(queue);  // This is dequeue() in C++ STL
+        if (queue->front->data != NULL) {
+            process->thread_name = strdup(queue->front->data->thread_name);
+            process->thread_type = strdup(queue->front->data->thread_type);
+            process->priority = queue->front->data->priority;
+            process->thread_length = queue->front->data->thread_length;
+            process->odds_of_IO = queue->front->data->odds_of_IO;
+            
+            curr->data = process;
+        }
+        dequeue_process(queue);
         
         // we add the condition i <= sortedIndex
         // because we don't want to traverse
