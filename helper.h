@@ -77,8 +77,9 @@ bool create_process(Process_queue *, Process_queue *, Process_queue *, Process_q
 
 // scheduler management functions
 int generate_random_word();
-void process_fcfs(Process_queue *);
+void process_fcfs(Process_queue *, bool);
 void process_sjf(Process_queue *);
+void process_srtf(Process_queue *);
 
 // Other helper functions
 void define_global_var();
