@@ -9,16 +9,22 @@
 #include <limits.h>
 #include "helper.h"
 
+int wait_time = 0;
+
 int main(int argc, char const *argv[]) {
     
     // load the processes first
     char *fileName = "processes.txt";
     
     queue = initialize_process_queue(queue);
+    high_queue = initialize_process_queue(high_queue);
+    med_queue = initialize_process_queue(med_queue);
+    low_queue = initialize_process_queue(low_queue);
+    
     // initialize the gloabl vars
     define_global_var();
     
-    load_processes(fileName, queue);
+    load_processes(fileName, queue, high_queue, med_queue, low_queue);
     
     int scheduler = atoi(argv[1]);
     
@@ -28,6 +34,8 @@ int main(int argc, char const *argv[]) {
             process_fcfs(queue);
             break;
         case 2:
+            printf("%s\n", "Using Priority Round Robin algorithm.");
+            process_priority_round_robin(high_queue, med_queue, low_queue);
             break;
         case 3:
             printf("%s\n", "Using Shortest Job First Scheduling algorithm.");
@@ -75,97 +83,508 @@ void define_global_var() {
 } // close define_global_var
 
 
+void process_priority_round_robin(Process_queue *queue_high, Process_queue *queue_med, Process_queue *queue_low) {
+    process_fcfs(queue_high);
+    process_fcfs(queue_med);
+    process_fcfs(queue_low);
+} // close process_priority_round_robin
+
+
+//void process_high_priority(Process_queue * high_queue) {
+//
+//    int len = high_queue->size;
+//    int i;
+//
+//    for (i = 0; i < len; i++) {
+//
+//        Process *process = queue->front->data;
+//        
+//    }
+//
+//
+//} // close process_high_priority
+
+
 void process_fcfs(Process_queue *queue) {
     
     int i;
-    int time_slice_for_io = 0;
-    int wait_time = 0;
-    //int len = queue->size;
-    for (i = 0; i < NUMBER_OF_PROCESSES; i++) {
-        // not checking for empty queue - bad porgramming
-        Process *process = queue->front->data;
-        char first_letter = process->thread_name[0];
-        
-        switch (first_letter) {
-            case 's':
-                if (process->priority == 0) {
-                    count_high_priority += 1;
-                    time_high = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                } else if (process->priority == 1) {
-                    count_med_priority += 1;
-                    time_med = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                } else {
-                    count_low_priority += 1;
-                    time_low = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                }
-                count_short += 1;
-                total_time_for_short = wait_time;
-                break;
-            case 'm':
-                if (process->priority == 0) {
-                    count_high_priority += 1;
-                    time_high = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                } else if (process->priority == 1) {
-                    count_med_priority += 1;
-                    time_med = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                } else {
-                    count_low_priority += 1;
-                    time_low = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                }
-                count_med += 1;
-                total_time_for_med = wait_time;
-                break;
+    int quantum;
+    bool result_io;
+    
+    // check if we need to rerun the processes
+    while (is_empty(queue)) {
+    
+    
+        for (i = 0; i < queue->size; i++) {
             
-            case 'l':
-                if (process->priority == 0) {
-                    count_high_priority += 1;
-                    time_high = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                } else if (process->priority == 1) {
-                    count_med_priority += 1;
-                    time_med = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                } else {
-                    count_low_priority += 1;
-                    time_low = wait_time + process->thread_length;
-                    wait_time += process->thread_length;
-                }
-                count_long += 1;
-                total_time_for_long = wait_time;
-                break;
+            // not checking for empty queue - bad porgramming
+            Process *process = queue->front->data;
+            char first_letter = process->thread_name[0];
             
-            case 'i':
-                time_slice_for_io = generate_random_word(process->thread_length);
+            // io interruption?
+            result_io = do_io(process->odds_of_IO);
+            
+            switch (first_letter) {
+                case 's':
+                    if (process->priority == 0) {
+                        if (result_io) {
+                            // io expected
+                            
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        if (process->thread_length - quantum <= 0) {
+                            count_high_priority += 1;
+                            count_short += 1;
+                            total_time_for_short = wait_time;
+                        } else {
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    } else if (process->priority == 1) {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        if (process->thread_length - quantum <= 0) {
+                            count_med_priority += 1;
+                            count_short += 1;
+                            total_time_for_short = wait_time;
+                        } else {
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                        
+                    } else {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        if (process->thread_length - quantum <= 0) {
+                            count_low_priority += 1;
+                            count_short += 1;
+                            total_time_for_short = wait_time;
+                        } else {
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                    } // else
+                    
+                    break;
+                    
+                case 'm':
+                    if (process->priority == 0) {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                // use the full time slice
+                                time_high = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_med_priority += 1;
+                            count_med += 1;
+                            total_time_for_med = wait_time;
+                        
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                        
+                    } else if (process->priority == 1) {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_med_priority += 1;
+                            count_med += 1;
+                            total_time_for_med = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                        
+                    } else {
+                        
+                        // low priority
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_low_priority += 1;
+                            count_med += 1;
+                            total_time_for_med = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    } // else
+                    break;
                 
-                if (process->priority == 0) {
-                    count_high_priority += 1;
-                    time_high = wait_time + time_slice_for_io;
-                    wait_time += time_slice_for_io;
-                } else if (process->priority == 1) {
-                    count_med_priority += 1;
-                    time_med = wait_time + time_slice_for_io;
-                    wait_time += time_slice_for_io;
-                } else {
-                    count_low_priority += 1;
-                    time_low = wait_time + time_slice_for_io;
-                    wait_time += time_slice_for_io;
-                }
-                count_io += 1;
-                total_time_for_io = wait_time;
-                break;
-            default:
-                break;
-        } // switch - case
-        
-        dequeue_process(queue);
-    } // for loop
+                case 'l':
+                    if (process->priority == 0) {
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_high_priority += 1;
+                            count_long += 1;
+                            total_time_for_long = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    } else if (process->priority == 1) {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_med_priority += 1;
+                            count_long += 1;
+                            total_time_for_long = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    } else {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                        
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_low_priority += 1;
+                            count_long += 1;
+                            total_time_for_long = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    }
+                    break;
+                
+                case 'i':
+                    
+                    if (process->priority == 0) {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                            
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_high = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_high = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_high_priority += 1;
+                            count_io += 1;
+                            total_time_for_io = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    } else if (process->priority == 1) {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                        
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_med = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_med = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_med_priority += 1;
+                            count_io += 1;
+                            total_time_for_io = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                        
+                    } else {
+                        
+                        if (result_io) {
+                            quantum = generate_time_slice(TIME_SLICE);
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + quantum;
+                                wait_time += quantum;
+                            }
+                        } else {
+                            quantum = TIME_SLICE;
+                            if (process->thread_length < quantum) {
+                                time_low = wait_time + process->thread_length;
+                                wait_time += process->thread_length;
+                            } else {
+                                time_low = wait_time + TIME_SLICE;
+                                wait_time += TIME_SLICE;
+                            }
+                        }
+                        
+                        // check if we have more time remaining
+                        if (process->thread_length - quantum <= 0) {
+                            count_low_priority += 1;
+                            count_io += 1;
+                            total_time_for_io = wait_time;
+                            
+                        } else {
+                            // enqueue the process again with the updated time
+                            int quantum_left = process->thread_length - quantum;
+                            process->thread_length = quantum_left;
+                            enqueue_process(queue, process);
+                        }
+                    }
+                    break;
+                    
+                default:
+                    break;
+            } // switch - case
+            dequeue_process(queue);
+        } // for loop
+    } // while loop
 } // close process_fcfs
+
+
+
+bool is_empty(Process_queue *queue) {
+    if (queue == NULL) {
+        return true;
+    } else {
+        return queue->size > 0;
+    }
+} // close is_empty
 
 
 void process_sjf(Process_queue *queue) {
@@ -190,9 +609,7 @@ void insert_min_to_rear(Process_queue *queue, int min_index) {
     Process *min_val_process = NULL;
     int n = queue->size;
     int i;
-    for (i = 0; i < n; i++)
-    {
-        Process_node *curr = queue->front;
+    for (i = 0; i < n; i++) {
         Process *process = (Process*) malloc(sizeof(PROCESS_SIZE) * 10);
         // deep copy before de-queueing
         process->thread_name = strdup(queue->front->data->thread_name);
@@ -265,9 +682,9 @@ void print_stats_by_type() {
     printf("Type 1 average run time: %d\n", total_time_for_med/count_med);
     printf("Type 2 average run time: %d\n", total_time_for_long/count_long);
     printf("Type 3 average run time: %d\n", total_time_for_io/count_io);
-}
+} // close print_stats_by_type
 
-void load_processes(char *fileName, Process_queue *queue) {
+void load_processes(char *fileName, Process_queue *queue, Process_queue *high_queue, Process_queue *med_queue, Process_queue *low_queue) {
     char *buffer;
     FILE *fp = fopen(fileName, "r");
     if (fp == NULL) {
@@ -279,8 +696,10 @@ void load_processes(char *fileName, Process_queue *queue) {
     buffer = (char*) malloc(sizeof(LENGTH));
     
     while (fgets(buffer, LENGTH, fp) != NULL) {
-        process_line(buffer);
-        create_process(queue);
+        bool result = process_line(buffer);
+        if (result) {
+            create_process(queue, high_queue, med_queue, low_queue);
+        }
     }
     printf("%s\n\n", "Process loading done!");
 } // close load processes
@@ -289,19 +708,22 @@ void load_processes(char *fileName, Process_queue *queue) {
 bool process_line(char *line) {
     size_t len = strlen(line);
     line[len -1] = '\0';
-    
-    char delim[] = " ";
-    _thread_name = strdup(strtok(line, delim));
-    _thread_type = strdup(strtok(NULL, delim));
-    _priority = atoi(strtok(NULL, delim));
-    _thread_length = atoi(strtok(NULL, delim));
-    char *i =strtok(NULL, delim);
-    _odds_of_IO = atoi(i);
-    return true;
+    bool result = false;
+    if (line[0] != '\0') {
+        char delim[] = " ";
+        _thread_name = strdup(strtok(line, delim));
+        _thread_type = strdup(strtok(NULL, delim));
+        _priority = atoi(strtok(NULL, delim));
+        _thread_length = atoi(strtok(NULL, delim));
+        char *i =strtok(NULL, delim);
+        _odds_of_IO = atoi(i);
+        result = true;
+    }
+    return result;
 } // close process_line
 
 
-bool create_process(Process_queue *queue) {
+bool create_process(Process_queue *queue, Process_queue *high_queue, Process_queue *med_queue, Process_queue *low_queue) {
     Process *process = (Process*) malloc(sizeof(PROCESS_SIZE) * 10);
     assert(process != NULL);
     
@@ -314,6 +736,16 @@ bool create_process(Process_queue *queue) {
     // enqueue the process
     enqueue_process(queue, process);
     NUMBER_OF_PROCESSES++;
+    
+    // For Priority RR
+    if (process->priority == 0) {
+        enqueue_process(high_queue, process);
+    } else if (process->priority == 1) {
+        enqueue_process(med_queue, process);
+    } else {
+        enqueue_process(low_queue, process);
+    }
+    
     return true;
 } // close create_process
 
@@ -383,8 +815,19 @@ void dequeue_process(Process_queue *q) {
 } // close dequeue_process
 
 
-int generate_random_word(int len) {
+int generate_time_slice(int len) {
+    return rand() % len + 1;
+} // close generate_time_slice
+
+
+int generate_random_word() {
     srand(time(NULL));
-    int rand_num = rand() % len;
-    return rand_num;
+    return rand() % 200;
 } // close generate_random_word
+
+
+bool do_io(int io_odds) {
+    int rand_num = generate_random_word(io_odds);
+    return rand_num > io_odds;
+} // close do_io
+
