@@ -13,7 +13,6 @@ So for instance, to run pure RR:
 
 `./main 1` 
 
-***
 # Analysis
 
 ## The two scheduling algorithms are:
@@ -35,12 +34,15 @@ So for instance, to run pure RR:
 | 10097      	| 8234       	| 11038      	|
 
 Average for P_0 = 10189
+
 Standard Dev for P_0 = 224.49785943053
 
 Average for P_1 = 8304.2
+
 Standard Dev for P_1 = 153.92480126492
 
 Average for P_2 = 11008.7
+
 Standard Dev for P_2 = 188.00534862368
 
 
@@ -59,15 +61,19 @@ Standard Dev for P_2 = 188.00534862368
 | 967    	| 2884   	| 17642  	| 16732  	|
 
 Average for type_0 = 1327
+
 Sample Standard Deviation for type_0 = 532.77741860722
 
 Average for type_1 = 3958.9
+
 Sample Standard Deviation for type_1 = 3136.2330004853
 
 Average for type_2 = 17596.6
+
 Sample Standard Deviation for type_2 = 362.77302362037
 
 Average for type_3 = 16355.9
+
 Sample Standard Deviation for type_3 = 550.51318482546
 
 
@@ -87,12 +93,15 @@ Sample Standard Deviation for type_3 = 550.51318482546
 | 3402       	| 11199      	| 20191      	|
 
 Average for P_0 = 3397.1
+
 Standard Dev for P_0 = 19.728434076508
 
 Average for P_1 = 11176.8
+
 Standard Dev for P_1 = 52.851574138231
 
 Average for P_2 = 20204.5
+
 Standard Dev for P_2 = 42.760963506451
 
 
@@ -111,20 +120,24 @@ Standard Dev for P_2 = 42.760963506451
 | 7946   | 9293   | 13238  | 15305  |
 
 Average for type_0 = 7986.3
+
 Sample Standard Deviation for type_0 = 61.385937586171
 
 Average for type_1 = 9345
+
 Sample Standard Deviation for type_1 = 96.511369508698
 
 Average for type_2 = 13271.8
+
 Sample Standard Deviation for type_2 = 118.95358571962
 
 Average for type_3 = 15149.8
+
 Sample Standard Deviation for type_3 = 250.82122894382
 
 
 ***
-#Comparision of the two algorithms
+# Comparision of the two algorithms
 We can see from our results that the two algorithms run differently from each other, just judging by the priority times. In Pure RR, the priorities don't matter as we can see that all the times for the different priorities are jumbled up. Priority 0 doesn't run faster than priority 1. 
 In Priority RR, we can see that the highest priorities are excuted first and they take less time as compared to the lower priorities. Priority 0 takes on average 3397 units to complete compared to 11000 or 20000 units for priority 1 and priority 2, respectively.
 
