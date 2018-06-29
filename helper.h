@@ -2,37 +2,6 @@
 #define PROCESS_SIZE 50
 #define TIME_SLICE 5
 
-
-// Global variables
-int NUMBER_OF_PROCESSES;
-int _priority;
-int _odds_of_IO;
-char *_thread_name;
-char *_thread_type;
-int _thread_length;
-
-// avergaing time
-int total_time_for_short;
-int total_time_for_med;
-int total_time_for_long;
-int total_time_for_io;
-
-// type counter
-int count_short;
-int count_med;
-int count_long;
-int count_io;
-
-// priority counter
-int count_high_priority;
-int count_med_priority;
-int count_low_priority;
-
-// time for priorities
-int time_high;
-int time_med;
-int time_low;
-
 // structs
 typedef struct process {
 	int priority;
@@ -76,7 +45,7 @@ bool process_line(char *);
 bool create_process(Process_queue *, Process_queue *, Process_queue *, Process_queue *);
 
 // scheduler management functions
-int generate_random_word();
+int generate_random_number();
 void process_fcfs(Process_queue *, bool);
 void process_sjf(Process_queue *);
 void process_srtf(Process_queue *);
