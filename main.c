@@ -4,7 +4,7 @@ Assignment 3
 Operating System - COMP 3430
 Robert "the Goat" Guderian <3
 Simulating Scheduling algorithms
-/******************************************************************************/
+******************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
