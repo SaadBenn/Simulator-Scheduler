@@ -1,3 +1,11 @@
+/******************************************************************************
+Saad Mushtaq
+Assignment 3
+Operating System - COMP 3430
+Robert "the Goat" Guderian <3
+Simulating Scheduling algorithms
+/******************************************************************************/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -9,10 +17,51 @@
 #include <limits.h>
 #include "helper.h"
 
+
+// Global variables
+int NUMBER_OF_PROCESSES;
+int _priority;
+int _odds_of_IO;
+char *_thread_name;
+char *_thread_type;
+int _thread_length;
+
+// avergaing time
+int total_time_for_short;
+int total_time_for_med;
+int total_time_for_long;
+int total_time_for_io;
+
+// type counter
+int count_short;
+int count_med;
+int count_long;
+int count_io;
+
+// priority counter
+int count_high_priority;
+int count_med_priority;
+int count_low_priority;
+
+// time for priorities
+int time_high;
+int time_med;
+int time_low;
+
+// time tracker
 int wait_time = 0;
+
+// Do sorting for SJB
 const bool FALSE = false;
 const bool TRUE = true;
 
+// counters for the different priorities
+int counter_p0 = 0;
+int counter_p1 = 0;
+int counter_p2 = 0;
+
+
+/******************************************************************************/
 int main(int argc, char const *argv[]) {
     
     // load the processes first
@@ -32,7 +81,7 @@ int main(int argc, char const *argv[]) {
     
     switch (scheduler) {
         case 1:
-            printf("%s\n", "Using First Come First Served Scheduling algorithm.");
+            printf("%s\n", "Using Pure Round Robin Scheduling algorithm.");
             process_fcfs(queue, FALSE);
             break;
         case 2:
@@ -61,11 +110,17 @@ int main(int argc, char const *argv[]) {
 } // close main
 
 
+/******************************************************************************
+process all the shortest remaining time jobs first by sorting them
+******************************************************************************/
 void process_srtf(Process_queue *queue) {
     process_fcfs(queue, TRUE);
 } // close process_srtf
 
 
+/******************************************************************************
+Initialise all the global variables
+******************************************************************************/
 void define_global_var() {
     NUMBER_OF_PROCESSES = 0;
     // avergaing time
@@ -92,6 +147,9 @@ void define_global_var() {
 } // close define_global_var
 
 
+/******************************************************************************
+Process the highest priority first then the second one and then the lowest priority
+******************************************************************************/
 void process_priority_round_robin(Process_queue *queue_high, Process_queue *queue_med, Process_queue *queue_low) {
     process_fcfs(queue_high, FALSE);
     process_fcfs(queue_med, FALSE);
@@ -99,8 +157,12 @@ void process_priority_round_robin(Process_queue *queue_high, Process_queue *queu
 } // close process_priority_round_robin
 
 
+/******************************************************************************
+The heart of the simulator, this process will sdo sorting if it is SJF/SRTF otherwise it 
+will generate a quantum and use that until a job is completely dequed
+/******************************************************************************/
 void process_fcfs(Process_queue *queue, bool do_sort) {
-        
+    
     int i;
     int quantum;
     bool result_io;
@@ -111,10 +173,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
         if (do_sort) {
             sort_queue(queue);
         }
+        
         n = queue->size;
         for (i = 0; i < n; i++) {
             
-            // not checking for empty queue - bad porgramming
             Process *process = queue->front->data;
             char first_letter = process->thread_name[0];
             
@@ -126,31 +188,33 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                     if (process->priority == 0) {
                         if (result_io) {
                             // io expected
-                            
                             quantum = generate_time_slice(TIME_SLICE);
+                            
+                            // if time remaining is less than the quantum
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
+                                
+                            // thread length is > than the quantum
                             } else {
-                                time_high = wait_time + quantum;
                                 wait_time += quantum;
                             }
-                            
+                        // no io expected, use full time slice of 5
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_high = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
                         
+                        // check if the process has completed
                         if (process->thread_length - quantum <= 0) {
                             count_high_priority += 1;
+                            counter_p0++;
                             count_short += 1;
-                            total_time_for_short = wait_time;
+                            total_time_for_short += wait_time;
+                            time_high += wait_time;
                         } else {
                             int quantum_left = process->thread_length - quantum;
                             process->thread_length = quantum_left;
@@ -162,27 +226,25 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + quantum;
                                 wait_time += quantum;
                             }
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
                         
                         if (process->thread_length - quantum <= 0) {
                             count_med_priority += 1;
+                            counter_p1++;
                             count_short += 1;
-                            total_time_for_short = wait_time;
+                            time_med += wait_time;
+                            total_time_for_short += wait_time;
                         } else {
                             int quantum_left = process->thread_length - quantum;
                             process->thread_length = quantum_left;
@@ -191,32 +253,31 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         
                         
                     } else {
+                        // priority 2 - low priority
                         
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + quantum;
                                 wait_time += quantum;
                             }
                             
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
                         
                         if (process->thread_length - quantum <= 0) {
                             count_low_priority += 1;
+                            counter_p2++;
+                            time_low += wait_time;
                             count_short += 1;
-                            total_time_for_short = wait_time;
+                            total_time_for_short += wait_time;
                         } else {
                             int quantum_left = process->thread_length - quantum;
                             process->thread_length = quantum_left;
@@ -232,21 +293,17 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_high = wait_time + quantum;
                                 wait_time += quantum;
                             }
                             
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
                                 // use the full time slice
-                                time_high = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -254,8 +311,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_med_priority += 1;
+                            counter_p0++;
+                            time_high += wait_time;
                             count_med += 1;
-                            total_time_for_med = wait_time;
+                            total_time_for_med += wait_time;
                         
                         } else {
                             // enqueue the process again with the updated time
@@ -270,20 +329,16 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + quantum;
                                 wait_time += quantum;
                             }
                             
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -291,8 +346,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_med_priority += 1;
+                            time_med += wait_time;
+                            counter_p1++;
                             count_med += 1;
-                            total_time_for_med = wait_time;
+                            total_time_for_med += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -308,20 +365,16 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + quantum;
                                 wait_time += quantum;
                             }
                             
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -329,8 +382,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_low_priority += 1;
+                            time_low += wait_time;
+                            counter_p2++;
                             count_med += 1;
-                            total_time_for_med = wait_time;
+                            total_time_for_med += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -347,10 +402,8 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_high = wait_time + quantum;
                                 wait_time += quantum;
                             }
                             
@@ -358,10 +411,8 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_high = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -369,8 +420,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_high_priority += 1;
+                            counter_p0++;
+                            time_high += wait_time;
                             count_long += 1;
-                            total_time_for_long = wait_time;
+                            total_time_for_long += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -384,20 +437,16 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + quantum;
                                 wait_time += quantum;
                             }
 
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -405,8 +454,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_med_priority += 1;
+                            time_med += wait_time;
+                            counter_p1++;
                             count_long += 1;
-                            total_time_for_long = wait_time;
+                            total_time_for_long += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -420,20 +471,16 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + quantum;
                                 wait_time += quantum;
                             }
                         
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -441,8 +488,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_low_priority += 1;
+                            time_low += wait_time;
+                            counter_p2++;
                             count_long += 1;
-                            total_time_for_long = wait_time;
+                            total_time_for_long += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -461,20 +510,16 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_high = wait_time + quantum;
                                 wait_time += quantum;
                             }
                             
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_high = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_high = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -482,8 +527,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_high_priority += 1;
+                            time_high += wait_time;
+                            counter_p0++;
                             count_io += 1;
-                            total_time_for_io = wait_time;
+                            total_time_for_io += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -497,20 +544,16 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + quantum;
                                 wait_time += quantum;
                             }
                         
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_med = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_med = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -518,8 +561,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_med_priority += 1;
+                            time_med += wait_time;
+                            counter_p1++;
                             count_io += 1;
-                            total_time_for_io = wait_time;
+                            total_time_for_io += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -533,19 +578,15 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         if (result_io) {
                             quantum = generate_time_slice(TIME_SLICE);
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + quantum;
                                 wait_time += quantum;
                             }
                         } else {
                             quantum = TIME_SLICE;
                             if (process->thread_length < quantum) {
-                                time_low = wait_time + process->thread_length;
                                 wait_time += process->thread_length;
                             } else {
-                                time_low = wait_time + TIME_SLICE;
                                 wait_time += TIME_SLICE;
                             }
                         }
@@ -553,8 +594,10 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
                         // check if we have more time remaining
                         if (process->thread_length - quantum <= 0) {
                             count_low_priority += 1;
+                            time_low += wait_time;
+                            counter_p2++;
                             count_io += 1;
-                            total_time_for_io = wait_time;
+                            total_time_for_io += wait_time;
                             
                         } else {
                             // enqueue the process again with the updated time
@@ -574,7 +617,9 @@ void process_fcfs(Process_queue *queue, bool do_sort) {
 } // close process_fcfs
 
 
-
+/******************************************************************************
+Queue Management function, check if the queue is empty
+/******************************************************************************/
 bool is_empty(Process_queue *queue) {
     if (queue == NULL) {
         return true;
@@ -584,12 +629,18 @@ bool is_empty(Process_queue *queue) {
 } // close is_empty
 
 
+/******************************************************************************
+Process all the shortest jobs first by sorting them first
+/******************************************************************************/
 void process_sjf(Process_queue *queue) {
     // sort the queue by shortest jobs first
     process_fcfs(queue, TRUE);
 } // close process_sjf
 
 
+/******************************************************************************
+Goes through the queue by using in line sort w/o creating a new queue O(n) time
+/******************************************************************************/
 void sort_queue(Process_queue *queue) {
     int i;
     int n = queue->size;
@@ -600,8 +651,9 @@ void sort_queue(Process_queue *queue) {
 } // close sort_queue
 
 
-// Moves given minimum element to rear of
-// queue
+/****************************************************************************** 
+Moves given minimum element to rear of queue
+/******************************************************************************/
 void insert_min_to_rear(Process_queue *queue, int min_index) {
     Process *min_val_process = NULL;
     int n = queue->size;
@@ -626,10 +678,12 @@ void insert_min_to_rear(Process_queue *queue, int min_index) {
 } // close insert_min_to_rear
 
 
-// Queue elements after sortedIndex are
-// already sorted. This function returns
-// index of minimum element from front to
-// sortedIndex
+/****************************************************************************** 
+Queue elements after sortedIndex are
+already sorted. This function returns
+index of minimum element from front to
+sortedIndex
+******************************************************************************/
 int min_finder(Process_queue *queue, int sorted_index) {
     int min_index = -1;
     int min_val = INT_MAX;
@@ -666,14 +720,20 @@ int min_finder(Process_queue *queue, int sorted_index) {
 } // close min_finder
 
 
+/******************************************************************************
+Print the stats by priority
+/******************************************************************************/
 void print_stats_by_priority() {
     printf("\n%s\n", "Average run time per priority:");
-    printf("Priority 0 average run time: %d\n", time_high/count_high_priority);
-    printf("Priority 1 average run time: %d\n", time_med/count_med_priority);
-    printf("Priority 2 average run time: %d\n", time_low/count_low_priority);
+    printf("Priority 0 average run time: %d\n", time_high/counter_p0);
+    printf("Priority 1 average run time: %d\n", time_med/counter_p1);
+    printf("Priority 2 average run time: %d\n", time_low/counter_p2);
 } // close print_stats_priority
 
 
+/******************************************************************************
+print stats by type
+/******************************************************************************/
 void print_stats_by_type() {
     printf("\n\n%s\n", "Average run time per type:");
     printf("Type 0 average run time: %d\n", total_time_for_short/count_short);
@@ -682,6 +742,10 @@ void print_stats_by_type() {
     printf("Type 3 average run time: %d\n", total_time_for_io/count_io);
 } // close print_stats_by_type
 
+
+/******************************************************************************
+Read the job from the file and create the job
+/******************************************************************************/
 void load_processes(char *fileName, Process_queue *queue, Process_queue *high_queue, Process_queue *med_queue, Process_queue *low_queue) {
     char *buffer;
     FILE *fp = fopen(fileName, "r");
@@ -703,6 +767,9 @@ void load_processes(char *fileName, Process_queue *queue, Process_queue *high_qu
 } // close load processes
 
 
+/******************************************************************************
+does string parsing
+/******************************************************************************/
 bool process_line(char *line) {
     size_t len = strlen(line);
     line[len -1] = '\0';
@@ -721,6 +788,9 @@ bool process_line(char *line) {
 } // close process_line
 
 
+/******************************************************************************
+Creates a new process
+/******************************************************************************/
 bool create_process(Process_queue *queue, Process_queue *high_queue, Process_queue *med_queue, Process_queue *low_queue) {
     Process *process = (Process*) malloc(sizeof(PROCESS_SIZE) * 10);
     assert(process != NULL);
@@ -748,9 +818,9 @@ bool create_process(Process_queue *queue, Process_queue *high_queue, Process_que
 } // close create_process
 
 
-/**
- * Creates a single process node with pointer to data and next
- */
+/******************************************************************************
+ Creates a single process node with pointer to data and next
+******************************************************************************/
 Process_node *create_process_node(Process *p) {
     Process_node *node = (Process_node*) malloc(sizeof(Process_node) * 50);
     if (node == NULL) {
@@ -764,9 +834,9 @@ Process_node *create_process_node(Process *p) {
 } // close create_process_node
 
 
-/**
- * Initializes a process queue. Makes an empty queue
- */
+/******************************************************************************
+ Initializes a process queue. Makes an empty queue
+ ******************************************************************************/
 Process_queue *initialize_process_queue(Process_queue *q) {
     q = (Process_queue*) malloc(sizeof(Process_queue));
     
@@ -777,9 +847,9 @@ Process_queue *initialize_process_queue(Process_queue *q) {
 } // close initialize_process_queue
 
 
-/**
- * Equeues a process
- */
+/******************************************************************************
+ Equeues a process
+/******************************************************************************/
 void enqueue_process(Process_queue *q, Process *p) {
     Process_node *node = create_process_node(p);
     
@@ -795,10 +865,10 @@ void enqueue_process(Process_queue *q, Process *p) {
 } // close enqueue_process
 
 
-/**
- * Dequeues a process
- */
-void dequeue_process(Process_queue *q) {
+/******************************************************************************
+ Dequeues a process
+ ******************************************************************************/
+ void dequeue_process(Process_queue *q) {
     Process_node *deleted = q->front;
     assert(q->size > 0);
     if (q->size == 1) {
@@ -813,19 +883,28 @@ void dequeue_process(Process_queue *q) {
 } // close dequeue_process
 
 
+/******************************************************************************
+Generate a time slice using the given parameter
+/******************************************************************************/
 int generate_time_slice(int len) {
     return rand() % len + 1;
 } // close generate_time_slice
 
 
-int generate_random_word() {
+/******************************************************************************
+generate a random number to check for IO interruptions
+/******************************************************************************/
+int generate_random_number() {
     srand(time(NULL));
-    return rand() % 200;
+    return rand() % 110;
 } // close generate_random_word
 
 
+/******************************************************************************
+Helper function that does the checking by returning whether there is IO or nah
+/******************************************************************************/
 bool do_io(int io_odds) {
-    int rand_num = generate_random_word(io_odds);
+    int rand_num = generate_random_number();
     return rand_num > io_odds;
 } // close do_io
 
