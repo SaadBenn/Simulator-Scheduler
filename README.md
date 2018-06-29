@@ -33,6 +33,7 @@ So for instance, to run pure RR:
 | 10032      	| 8281       	| 10943      	|
 | 10097      	| 8234       	| 11038      	|
 
+```
 Average for P_0 = 10189
 
 Standard Dev for P_0 = 224.49785943053
@@ -44,7 +45,7 @@ Standard Dev for P_1 = 153.92480126492
 Average for P_2 = 11008.7
 
 Standard Dev for P_2 = 188.00534862368
-
+```
 
 ### Stats for the different types of jobs using Pure RR
 | Type 0 	| Type 1 	| Type 2 	| Type 3 	|
@@ -60,6 +61,7 @@ Standard Dev for P_2 = 188.00534862368
 | 1184   	| 2787   	| 17892  	| 15994  	|
 | 967    	| 2884   	| 17642  	| 16732  	|
 
+```
 Average for type_0 = 1327
 
 Sample Standard Deviation for type_0 = 532.77741860722
@@ -76,6 +78,7 @@ Average for type_3 = 16355.9
 
 Sample Standard Deviation for type_3 = 550.51318482546
 
+```
 
 ***
 ### Stats for the different priorities using Priority RR
@@ -92,6 +95,7 @@ Sample Standard Deviation for type_3 = 550.51318482546
 | 3431       	| 11198      	| 20227      	|
 | 3402       	| 11199      	| 20191      	|
 
+```
 Average for P_0 = 3397.1
 
 Standard Dev for P_0 = 19.728434076508
@@ -104,6 +108,7 @@ Average for P_2 = 20204.5
 
 Standard Dev for P_2 = 42.760963506451
 
+```
 
 ### Stats for the different types of jobs using Priority RR
 | Type 0 | Type 1 | Type 2 | Type 3 |
@@ -119,6 +124,7 @@ Standard Dev for P_2 = 42.760963506451
 | 8042   | 9287   | 13239  | 15302  |
 | 7946   | 9293   | 13238  | 15305  |
 
+```
 Average for type_0 = 7986.3
 
 Sample Standard Deviation for type_0 = 61.385937586171
@@ -134,7 +140,7 @@ Sample Standard Deviation for type_2 = 118.95358571962
 Average for type_3 = 15149.8
 
 Sample Standard Deviation for type_3 = 250.82122894382
-
+```
 
 ***
 # Comparision of the two algorithms
