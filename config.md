@@ -1,6 +1,6 @@
 # Analysis
 
-## The two scheduling algorithms are:
+## The two scheduling algorithms chosen for analysis are:
 1. Pure RR
 2. Priority RR
 
@@ -129,9 +129,11 @@ Sample Standard Deviation for type_3 = 250.82122894382
 
 ***
 # Comparision of the two algorithms
-We can see from our results that the two algorithms run differently from each other, just judging by the priority times. In Pure RR, the priorities don't matter as we can see that all the times for the different priorities are jumbled up. Priority 0 doesn't run faster than priority 1. 
+We can see from our results that the two algorithms run differently from each other, just judging by the priority average times and  average times for the different types. In Pure RR, the priorities don't matter as we can see that all the times for the different priorities are jumbled up. Priority 0 doesn't run faster than priority 1. 
 In Priority RR, we can see that the highest priorities are excuted first and they take less time as compared to the lower priorities. Priority 0 takes on average 3397 units to complete compared to 11000 or 20000 units for priority 1 and priority 2, respectively.
 
-The two algrothims are different in terms of when we commpare the times for their priorties but when it comes the types of different jobs then they comparision is minimal. Both schedulers take less time to execute the shortest types jobs compared to medium, long or io types of jobs. 
+The two algrothims are different in terms of when we compare the times for their priorties but when it comes to the types of different jobs then the comparision is minimal. Both schedulers take less time to execute the shortest types jobs compared to medium, long or io types of jobs. Although, it should be noted that Pure RR does take less time executing the different types of jobs compared to Priority RR but the distribution is different when we reflect on the average times for the different priorities take to complete. 
 
-The two schedulers treat the queue differently. In Pure RR, the priority times are all mixed up which means that this algorithm follows first in first served conept. For Priority RR, the highest priority jobs are completed first which means that we have different queues depending on the priority and we process the queue with the highest priority jobs and then once we are done with that, we process the other queues. 
+The two schedulers treat the queue differently. In Pure RR, the priority times are all mixed up, so for instance, the averages are 10189, 8304.2, and 11008.7 for P_0, P_1 and P2 respectively which means that this algorithm follows first in first served conept as there is no logical order to the jobs in their averages. Similarly, the average for type 2 job is 17596.6 and type 3 job is 16355.9 which further enhances my argument that pure RR works on first come first served basis. So the queue will process the jobs in the order they are stored in the queue so whoever is first will get process time, a good analogy would be a line for a cashier in a bank.
+
+For Priority RR, the highest priority jobs are completed first as can be seen from the average times for P_0, P_1 and P_2 which are 3397.1, 11176.8 and 20204.5 respectively. This means that we have different queues depending on the priority and we process the queue with the highest priority jobs first which is proved by the lowest time taken for piorities 0 jobs from our sample and then once we are done with that, we process the other queues in ascending order. The jobs are stored in the queue in terms of their priorities so the highest priority jobs are stored first in a queue and then the second highest priority are stored in a (probably) different queue and so on. The highest priority queue jobs get cpu time and once the jobs are done we move to the next highest priority queue. This cycle repeats untill all the priojobs are done.
